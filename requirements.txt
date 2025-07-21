@@ -3,7 +3,3 @@ uvicorn
 pydantic
 python-multipart
 httpx
-json
-uuid
-datetime
-os
