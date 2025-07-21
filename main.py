@@ -28,21 +28,6 @@ class MatchRequest(BaseModel):
     need: str
     
     
-@app.post("/match")
-async def match_nodes(match_request: MatchRequest, request: Request):
-    need = match_request.need
-    matches = []
-
-    for node in db:
-        if need in node.get("offers", []):
-            score = 0.6 * node.get("vitality", 1.0) + 0.4 * (1 - node.get("urgency", 0.5))
-            node_with_score = node.copy()
-            node_with_score["score"] = round(score, 3)
-            matches.append(node_with_score)
-
-    matches.sort(key=lambda n: n["score"], reverse=True)
-    return matches
-
 # ─── Init App ──────────────────────────────────────────────────────
 app = FastAPI()
 limiter = Limiter(key_func=get_remote_address)
@@ -92,6 +77,23 @@ def load_folder(folder: str) -> List[Dict[str, Any]]:
     return out
 
 # ─── API Endpoints ─────────────────────────────────────────────────
+
+
+@app.post("/match")
+async def match_nodes(match_request: MatchRequest, request: Request):
+    need = match_request.need
+    matches = []
+
+    for node in db:
+        if need in node.get("offers", []):
+            score = 0.6 * node.get("vitality", 1.0) + 0.4 * (1 - node.get("urgency", 0.5))
+            node_with_score = node.copy()
+            node_with_score["score"] = round(score, 3)
+            matches.append(node_with_score)
+
+    matches.sort(key=lambda n: n["score"], reverse=True)
+    return matches
+
 
 @app.post("/needs")
 @limiter.limit("5/minute")
