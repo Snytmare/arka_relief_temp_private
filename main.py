@@ -32,7 +32,7 @@ class Need(BaseModel):
     urgency: float
     timestamp: str
     
- class Offer(BaseModel):
+class Offer(BaseModel):
     node_id: str
     item: str
     quantity: int
