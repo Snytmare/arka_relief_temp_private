@@ -1,84 +1,83 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import List, Optional
+import json
+import uuid
+from datetime import datetime
+import os
 
 app = FastAPI()
 
-# =========================
-# ✅ Data Models
-# =========================
+DATA_DIR = "data"
+NEEDS_PATH = os.path.join(DATA_DIR, "needs.json")
+OFFERS_PATH = os.path.join(DATA_DIR, "offers.json")
+LOG_PATH = os.path.join(DATA_DIR, "log.json")
 
-class Need(BaseModel):
-    description: str
-    location: str
-    contact_info: str
-    callback_url: Optional[str] = None
 
-class Offer(BaseModel):
-    description: str
-    location: str
-    contact_info: str
-    callback_url: Optional[str] = None
+def load_json(path):
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
-class EncryptedNeed(BaseModel):
-    encrypted_data: str
-    recipient_key: str
-    nonce: str
 
-class EncryptedOffer(BaseModel):
-    encrypted_data: str
-    recipient_key: str
-    nonce: str
+def save_json(path, data):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
 
-# =========================
-# ✅ In-Memory Storage
-# =========================
-
-needs_store: List[dict] = []
-offers_store: List[dict] = []
-inbox_store: List[dict] = []
-
-# =========================
-# ✅ Decrypted Endpoints
-# =========================
 
 @app.post("/needs")
-async def receive_need(need: Need):
-    needs_store.append(need.dict())
-    return {"status": "Need stored"}
+def submit_need(need: dict):
+    data = load_json(NEEDS_PATH)
+    data["id"] = str(uuid.uuid4())
+    data["timestamp"] = datetime.utcnow().isoformat()
+    save_json(NEEDS_PATH, need)
+    return {"status": "Need submitted", "id": data["id"]}
 
-@app.get("/needs")
-def get_needs():
-    return needs_store
 
 @app.post("/offers")
-async def receive_offer(offer: Offer):
-    offers_store.append(offer.dict())
-    return {"status": "Offer stored"}
+def submit_offer(offer: dict):
+    data = load_json(OFFERS_PATH)
+    data["id"] = str(uuid.uuid4())
+    data["timestamp"] = datetime.utcnow().isoformat()
+    save_json(OFFERS_PATH, offer)
+    return {"status": "Offer submitted", "id": data["id"]}
+
+
+@app.get("/needs")
+def get_all_needs():
+    return load_json(NEEDS_PATH)
+
 
 @app.get("/offers")
-def get_offers():
-    return offers_store
+def get_all_offers():
+    return load_json(OFFERS_PATH)
 
-# =========================
-# ✅ Encrypted Endpoints
-# =========================
 
-@app.post("/encrypted-needs")
-async def receive_encrypted_need(payload: EncryptedNeed):
-    inbox_store.append(payload.dict())
-    return {"status": "Encrypted need stored"}
+@app.get("/log")
+def get_logs():
+    return load_json(LOG_PATH)
 
-@app.post("/encrypted-offers")
-async def receive_encrypted_offer(payload: EncryptedOffer):
-    inbox_store.append(payload.dict())
-    return {"status": "Encrypted offer stored"}
 
-# =========================
-# ✅ Inbox Retrieval by Recipient Key
-# =========================
+@app.get("/matches")
+def get_matches():
+    needs = load_json(NEEDS_PATH)
+    offers = load_json(OFFERS_PATH)
 
-@app.get("/inbox/{recipient_key}")
-def get_inbox(recipient_key: str):
-    messages = [msg for msg in inbox_store if msg.get("recipient_key") == recipient_key]
-    return {"messages": messages}
+    matched_items = []
+    for need in needs.get("needs", []):
+        for offer in offers.get("offers", []):
+            if need["type"] == offer["type"] and need["item"] == offer["item"]:
+                matched_items.append({
+                    "need": need,
+                    "offer": offer,
+                    "matched_on": "type+item"
+                })
+    return {"matches": matched_items}
+
+
+@app.post("/fulfill")
+def fulfill_delivery(entry: dict):
+    logs = load_json(LOG_PATH)
+    entry["timestamp"] = datetime.utcnow().isoformat()
+    logs.append(entry)
+    save_json(LOG_PATH, logs)
+    return {"status": "Logged"}
