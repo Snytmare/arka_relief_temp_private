@@ -3,5 +3,8 @@ __pycache__/
 data/needs/
 data/offers/
 data/logs/
+*.sqlite3
+*.log
+*.db
 .env
 ```
