@@ -246,6 +246,5 @@ def receive_encrypted(payload: dict):
 
 @app.get("/inbox/{recipient_key}")
 def get_inbox(recipient_key: str):
-    messages = [msg for msg in inbox_store if msg.get("recipient_key") == recipient_key]
-    return {"messages": messages}
+    return {"messages": [msg for msg in inbox_store if msg.get("recipient_key") == recipient_key]}
 
