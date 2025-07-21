@@ -1,0 +1,54 @@
+{
+  "node_id": "node_cairo_medic_001",
+  "timestamp": "2025-07-20T23:47:00Z",
+  "location": {
+    "region": "Cairo, Egypt",
+    "precision": "medium",
+    "lat": null,
+    "lon": null
+  },
+  "offers": [
+    {
+      "type": "medicine",
+      "item": "insulin",
+      "quantity": 12,
+      "unit": "vials",
+      "availability_window_hours": 48,
+      "recurrence": "weekly",
+      "dimensions": {
+        "transport_ready": true,
+        "cold_chain": true,
+        "cross_border_ready": false
+      },
+      "notes": "Short-acting type. Cold storage available. Can’t cross into Gaza myself."
+    },
+    {
+      "type": "labor",
+      "item": "telehealth triage",
+      "quantity": 8,
+      "unit": "hours",
+      "availability_window_hours": 24,
+      "recurrence": "daily",
+      "dimensions": {
+        "language": ["ar", "en"],
+        "platform": ["signal", "telegram"]
+      },
+      "notes": "Available 18:00–02:00 EEST."
+    }
+  ],
+  "constraints": {
+    "mobility": "static",
+    "access_level": ["trusted node delivery", "verified recipient"],
+    "legal_risk": "medium"
+  },
+  "contact": {
+    "method": "signal",
+    "handle": "@medicaresolidarity",
+    "preferred_lang": "en"
+  },
+  "trust": {
+    "vouched_by": ["node_humanitarianroute_west"],
+    "fulfilled_deliveries": 5,
+    "open_disputes": 0
+  }
+}

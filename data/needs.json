@@ -1,0 +1,48 @@
+{
+  "node_id": "node_gaza_mother_001",
+  "timestamp": "2025-07-20T23:23:00Z",
+  "location": {
+    "region": "Gaza, Rafah",
+    "precision": "low",  
+    "lat": null,
+    "lon": null
+  },
+  "urgency": 0.95,
+  "vitality": 1.0,
+  "needs": [
+    {
+      "type": "medicine",
+      "item": "insulin",
+      "quantity": 4,
+      "unit": "vials",
+      "time_sensitivity_hours": 12,
+      "recurrence": "daily",
+      "alt_items": ["glucagon", "syringes"],
+      "notes": "For diabetic son, 12 years old"
+    },
+    {
+      "type": "food",
+      "item": "baby_formula",
+      "quantity": 5,
+      "unit": "packs",
+      "time_sensitivity_hours": 24,
+      "recurrence": "weekly",
+      "alt_items": ["rice cereal"],
+      "notes": "Infant, 8 months old"
+    }
+  ],
+  "constraints": {
+    "accessible_routes": ["Rafah Corridor", "NGO van only"],
+    "delivery_window_hours": 6,
+    "security_risks": ["checkpoints", "drones"]
+  },
+  "contact": {
+    "method": "signal",
+    "handle": "@lightintherubble",
+    "preferred_lang": "ar"
+  },
+  "trust": {
+    "vouched_by": ["node_clinic_rafah", "node_reliefmesh_palestine"],
+    "last_fulfilled": "2025-07-14"
+  }
+}

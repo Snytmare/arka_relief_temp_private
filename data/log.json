@@ -1,0 +1,48 @@
+{
+  "log_id": "log_000001_fulfillment",
+  "timestamp": "2025-07-21T00:11:00Z",
+  "status": "fulfilled",  // options: pending | in_transit | fulfilled | failed | disputed
+  "need": {
+    "node_id": "node_gaza_mother_001",
+    "item": "insulin",
+    "quantity": 4,
+    "unit": "vials",
+    "original_timestamp": "2025-07-20T23:23:00Z"
+  },
+  "offer": {
+    "node_id": "node_cairo_medic_001",
+    "item": "insulin",
+    "quantity": 4,
+    "unit": "vials",
+    "timestamp": "2025-07-20T23:47:00Z"
+  },
+  "transport_chain": [
+    {
+      "node_id": "node_driver_corridor_044",
+      "handoff_time": "2025-07-21T00:00:00Z",
+      "route": "Rafah → Khan Younis",
+      "risk": "medium",
+      "verified": true
+    }
+  ],
+  "verification": {
+    "witness_nodes": ["node_clinic_rafah", "node_reliefmesh_palestine"],
+    "method": "delivery photo + QR scan + signal confirmation",
+    "verified_at": "2025-07-21T00:10:00Z"
+  },
+  "trust_update": {
+    "recipient": {
+      "node_id": "node_gaza_mother_001",
+      "credit": 1.0
+    },
+    "provider": {
+      "node_id": "node_cairo_medic_001",
+      "credit": 1.0
+    },
+    "carrier": {
+      "node_id": "node_driver_corridor_044",
+      "credit": 0.75
+    }
+  },
+  "notes": "Item reached recipient within 11 hours of request. Cold chain confirmed intact."
+}
