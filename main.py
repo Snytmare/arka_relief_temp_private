@@ -121,9 +121,9 @@ async def post_log(request: Request):
 async def get_log(request: Request):
     return load_folder(LOGS_DIR)
 
-@app.get("/matches")
+@app.get("/match")
 @limiter.limit("5/minute")
-async def get_matches():
+def get_matches(request: Request):
     needs = load_folder(NEEDS_DIR)
     offers = load_folder(OFFERS_DIR)
     matches = []
