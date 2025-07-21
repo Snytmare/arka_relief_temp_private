@@ -25,6 +25,20 @@ os.makedirs(NEEDS_DIR, exist_ok=True)
 os.makedirs(OFFERS_DIR, exist_ok=True)
 os.makedirs(LOGS_DIR, exist_ok=True)
 
+class Need(BaseModel):
+    node_id: str
+    item: str
+    quantity: int
+    urgency: float
+    timestamp: str
+    
+ class Offer(BaseModel):
+    node_id: str
+    item: str
+    quantity: int
+    availability_window_hours: int
+    timestamp: str
+
 class Match(BaseModel):
     need_node: str
     offer_node: str
