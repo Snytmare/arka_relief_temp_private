@@ -7,18 +7,20 @@ from typing import List, Dict, Any
 
 app = FastAPI()
 
-# ─── CORS ────────────────────────────────────────────────────────────────────
-# allow all origins for now; later you can lock to your Netlify URL if you like
+origins = [
+    "https://brilliant-gingersnap-a8e6d2.netlify.app",  
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# ─────────────────────────────────────────────────────────────────────────────
+─────────────────────────────────────────────────────────
 
-# Ensure data directories exist
+
 BASE_DIR = "data"
 NEEDS_DIR = os.path.join(BASE_DIR, "needs")
 OFFERS_DIR = os.path.join(BASE_DIR, "offers")
