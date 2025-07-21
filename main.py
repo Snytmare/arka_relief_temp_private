@@ -137,3 +137,33 @@ async def submit_offer(offer: Offer):
 def get_matches():
     raw_matches = match_needs_to_offers(needs_store, offers_store)
     return [Match(**m) for m in raw_matches]
+
+
+class EncryptedNeed(BaseModel):
+    encrypted_data: str
+    nonce: str
+    sender_node_id: str
+    item_hint: Optional[str] = None
+    timestamp: Optional[str] = None
+
+@app.post("/encrypted-needs")
+async def receive_encrypted_need(payload: EncryptedNeed):
+    # Save the encrypted payload as a file for later processing
+    encrypted_entry = payload.dict()
+    save_json(encrypted_entry, NEEDS_DIR, "encrypted")
+
+    return {"status": "encrypted need received"}
+
+class EncryptedOffer(BaseModel):
+    encrypted_data: str
+    nonce: str
+    sender_node_id: str
+    item_hint: Optional[str] = None
+    timestamp: Optional[str] = None
+
+@app.post("/encrypted-offers")
+async def receive_encrypted_offer(payload: EncryptedOffer):
+    encrypted_entry = payload.dict()
+    save_json(encrypted_entry, OFFERS_DIR, "encrypted_offer")
+
+    return {"status": "encrypted offer received"}
