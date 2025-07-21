@@ -238,11 +238,6 @@ async def receive_decrypted_offer(offer: Offer):
 
 inbox_store = []
 
-@app.post("/encrypted-inbox")
-def receive_encrypted(payload: dict):
-    # Store encrypted message in inbox
-    inbox_store.append(payload)
-    return {"status": "stored"}
 
 @app.get("/inbox/{recipient_key}")
 def get_inbox(recipient_key: str):
