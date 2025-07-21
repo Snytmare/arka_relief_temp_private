@@ -123,10 +123,11 @@ async def get_log(request: Request):
 
 @app.get("/matches")
 @limiter.limit("5/minute")
-async def get_matches(request: Request):
+async def get_matches():
     needs = load_folder(NEEDS_DIR)
     offers = load_folder(OFFERS_DIR)
     matches = []
+
     for n in needs:
         for need_item in n.get("needs", []):
             for o in offers:
@@ -137,15 +138,25 @@ async def get_matches(request: Request):
                         and offer_item.get("quantity", 0)
                         >= need_item.get("quantity", 0)
                     ):
+                        route = generate_route(n.get("node_id"), o.get("node_id"))
                         matches.append({
                             "need_node": n.get("node_id"),
                             "offer_node": o.get("node_id"),
                             "item": need_item.get("item"),
                             "quantity_needed": need_item.get("quantity"),
                             "quantity_offered": offer_item.get("quantity"),
-                            "matched_at": datetime.datetime.utcnow().isoformat()
+                            "matched_at": datetime.datetime.utcnow().isoformat(),
+                            "route": route
                         })
+
     return matches
+
+
+@app.get("/route/{need_id}/{offer_id}")
+async def get_route(need_id: str, offer_id: str):
+    return generate_route(need_id, offer_id)
+
+
 
 # ─── Admin Protected ──────────────────────────────────────────────
 @app.post("/admin")
