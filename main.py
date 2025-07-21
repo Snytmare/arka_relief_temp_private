@@ -25,22 +25,6 @@ os.makedirs(NEEDS_DIR, exist_ok=True)
 os.makedirs(OFFERS_DIR, exist_ok=True)
 os.makedirs(LOGS_DIR, exist_ok=True)
 
-class Need(BaseModel):
-    node_id: str
-    item: str
-    quantity: int
-    urgency: float
-    timestamp: str
-    callback_url: Optional[str] = None
-
-class Offer(BaseModel):
-    node_id: str
-    item: str
-    quantity: int
-    availability_window_hours: int
-    timestamp: str
-    callback_url: Optional[str] = None
-
 class Match(BaseModel):
     need_node: str
     offer_node: str
@@ -55,6 +39,10 @@ class EncryptedOffer(BaseModel):
     sender_node_id: str
     item_hint: Optional[str] = None
 
+class EncryptedNeed(BaseModel):
+    recipient_key: str
+    encrypted_message: str
+    nonce: str
 
 node_callbacks = {}
 needs_store = []
@@ -249,3 +237,4 @@ def get_inbox(recipient_key: str):
     return {"messages": messages}
 
 # trigger redeploy
+
