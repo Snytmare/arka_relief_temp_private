@@ -18,10 +18,30 @@ ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")
 class NeedItem(BaseModel):
     item: str
     quantity: int
+    
 
 class NeedPayload(BaseModel):
     node_id: str
     needs: List[NeedItem]
+
+class MatchRequest(BaseModel):
+    need: str
+    
+    
+@app.post("/match")
+async def match_nodes(match_request: MatchRequest, request: Request):
+    need = match_request.need
+    matches = []
+
+    for node in db:
+        if need in node.get("offers", []):
+            score = 0.6 * node.get("vitality", 1.0) + 0.4 * (1 - node.get("urgency", 0.5))
+            node_with_score = node.copy()
+            node_with_score["score"] = round(score, 3)
+            matches.append(node_with_score)
+
+    matches.sort(key=lambda n: n["score"], reverse=True)
+    return matches
 
 # ─── Init App ──────────────────────────────────────────────────────
 app = FastAPI()
