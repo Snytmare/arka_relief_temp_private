@@ -144,38 +144,62 @@ async def get_log(request: Request):
 @app.get("/match")
 @limiter.limit("5/minute")
 def get_matches(request: Request):
-    needs = load_folder(NEEDS_DIR)
-    offers = load_folder(OFFERS_DIR)
-    matches = []
+    return match_needs_to_offers()
 
-    for n in needs:
-        for need_item in n.get("needs", []):
-            for o in offers:
-                for offer_item in o.get("offers", []):
-                    if (
-                        need_item.get("item", "").lower()
-                        == offer_item.get("item", "").lower()
-                        and offer_item.get("quantity", 0)
-                        >= need_item.get("quantity", 0)
-                    ):
-                        route = generate_route(n.get("node_id"), o.get("node_id"))
-                        matches.append({
-                            "need_node": n.get("node_id"),
-                            "offer_node": o.get("node_id"),
-                            "item": need_item.get("item"),
-                            "quantity_needed": need_item.get("quantity"),
-                            "quantity_offered": offer_item.get("quantity"),
-                            "matched_at": datetime.datetime.utcnow().isoformat(),
-                            "route": route
-                        })
-
-    return matches
 
 
 @app.get("/route/{need_id}/{offer_id}")
 async def get_route(need_id: str, offer_id: str):
     return generate_route(need_id, offer_id)
 
+
+# ─── Match & Routing Logic ─────────────────────────────────────────
+
+def generate_route(need_node_id: str, offer_node_id: str) -> Dict[str, str]:
+    return {
+        "from": offer_node_id,
+        "to": need_node_id,
+        "method": "direct relay (simulated)",  # Placeholder
+    }
+
+def match_needs_to_offers() -> List[Dict[str, Any]]:
+    needs = load_folder(NEEDS_DIR)
+    offers = load_folder(OFFERS_DIR)
+    matches = []
+
+    for n in needs:
+        node_id_n = n.get("node_id")
+        urgency = float(n.get("urgency", 0.5))
+        vitality = float(n.get("vitality", 1.0))
+        need_items = n.get("needs", [])
+
+        for need_item in need_items:
+            item_needed = need_item.get("item", "").lower()
+            quantity_needed = int(need_item.get("quantity", 0))
+
+            for o in offers:
+                node_id_o = o.get("node_id")
+                offer_items = o.get("offers", [])
+
+                for offer_item in offer_items:
+                    item_offered = offer_item.get("item", "").lower()
+                    quantity_offered = int(offer_item.get("quantity", 0))
+
+                    if item_needed == item_offered and quantity_offered >= quantity_needed:
+                        score = 0.6 * urgency + 0.3 * vitality + 0.1
+                        matches.append({
+                            "need_node": node_id_n,
+                            "offer_node": node_id_o,
+                            "item": item_needed,
+                            "quantity_needed": quantity_needed,
+                            "quantity_offered": quantity_offered,
+                            "matched_at": datetime.datetime.utcnow().isoformat(),
+                            "score": round(score, 3),
+                            "route": generate_route(node_id_n, node_id_o),
+                        })
+
+    matches.sort(key=lambda x: x["score"], reverse=True)
+    return matches
 
 
 # ─── Admin Protected ──────────────────────────────────────────────
