@@ -1,0 +1,7 @@
+{
+    "vouching_node": "node_relief_clinic_009",
+    "vouched_node": "node_driver_corridor_044",
+    "reason": "Delivered critical aid 3 times without failure",
+    "date": "2025-07-20",
+    "signature": "sha256-hash-or-text-sig"
+}
