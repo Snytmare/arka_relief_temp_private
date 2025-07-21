@@ -1,13 +1,14 @@
-from fastapi import FastAPI, HTTPException
+# main.py
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Dict, Any
 import os, json, uuid, datetime
+from typing import List, Dict, Any
 
 app = FastAPI()
 
 # ─── CORS ────────────────────────────────────────────────────────────────────
-# allow all origins (or replace "*" with a list of your exact domains)
+# allow all origins for now; later you can lock to your Netlify URL if you like
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,105 +18,94 @@ app.add_middleware(
 )
 # ─────────────────────────────────────────────────────────────────────────────
 
-DATA_DIR = "data"
-NEEDS_PATH = os.path.join(DATA_DIR, "needs.json")
-OFFERS_PATH = os.path.join(DATA_DIR, "offers.json")
-LOG_PATH = os.path.join(DATA_DIR, "log.json")
+# Ensure data directories exist
+BASE_DIR = "data"
+NEEDS_DIR = os.path.join(BASE_DIR, "needs")
+OFFERS_DIR = os.path.join(BASE_DIR, "offers")
+LOGS_DIR = os.path.join(BASE_DIR, "logs")
 
-# ensure data files and folder exist
-os.makedirs(DATA_DIR, exist_ok=True)
-for path in (NEEDS_PATH, OFFERS_PATH, LOG_PATH):
-    if not os.path.isfile(path):
-        with open(path, "w") as f:
-            json.dump([], f)
+for d in (NEEDS_DIR, OFFERS_DIR, LOGS_DIR):
+    os.makedirs(d, exist_ok=True)
 
-# ─── Models ──────────────────────────────────────────────────────────────────
-class Need(BaseModel):
-    node_id: str
-    item: str
-    quantity: int
-    unit: str
-    timestamp: str
+def save_json(obj: Dict[str, Any], folder: str, prefix: str) -> str:
+    """Save obj to folder/prefix_<uuid>.json"""
+    fn = f"{prefix}_{uuid.uuid4().hex}.json"
+    with open(os.path.join(folder, fn), "w", encoding="utf-8") as f:
+        json.dump(obj, f, indent=2)
+    return fn
 
-class Offer(BaseModel):
-    node_id: str
-    item: str
-    quantity: int
-    unit: str
-    timestamp: str
+def load_folder(folder: str) -> List[Dict[str, Any]]:
+    """Load all JSON files in folder as a list of dicts."""
+    out = []
+    for fn in sorted(os.listdir(folder)):
+        if fn.endswith(".json"):
+            with open(os.path.join(folder, fn), "r", encoding="utf-8") as f:
+                out.append(json.load(f))
+    return out
 
-class LogEntry(BaseModel):
-    log_id: str
-    timestamp: str
-    status: str
-    need: Dict[str, Any]
-    offer: Dict[str, Any]
-    transport_chain: List[Dict[str, Any]]
-    verification: Dict[str, Any]
-    trust_update: Dict[str, Any]
-    notes: str
-
-# ─── Helpers ─────────────────────────────────────────────────────────────────
-def load(path):
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-def save(path, data):
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
-
-# ─── Endpoints ───────────────────────────────────────────────────────────────
+# ─── /needs ───────────────────────────────────────────────────────────────────
 @app.post("/needs")
-def create_need(need: Need):
-    lst = load(NEEDS_PATH)
-    entry = need.dict()
-    entry["id"] = str(uuid.uuid4())
-    entry["created_at"] = datetime.datetime.utcnow().isoformat()
-    lst.append(entry)
-    save(NEEDS_PATH, lst)
-    return {"status": "need submitted", "id": entry["id"]}
+async def post_needs(req: Request):
+    payload = await req.json()
+    payload["_received_at"] = datetime.datetime.utcnow().isoformat()
+    fn = save_json(payload, NEEDS_DIR, "need")
+    return {"status": "need stored", "file": fn}
 
 @app.get("/needs")
 def get_needs():
-    return load(NEEDS_PATH)
+    return load_folder(NEEDS_DIR)
 
+# ─── /offers ──────────────────────────────────────────────────────────────────
 @app.post("/offers")
-def create_offer(offer: Offer):
-    lst = load(OFFERS_PATH)
-    entry = offer.dict()
-    entry["id"] = str(uuid.uuid4())
-    entry["created_at"] = datetime.datetime.utcnow().isoformat()
-    lst.append(entry)
-    save(OFFERS_PATH, lst)
-    return {"status": "offer submitted", "id": entry["id"]}
+async def post_offers(req: Request):
+    payload = await req.json()
+    payload["_received_at"] = datetime.datetime.utcnow().isoformat()
+    fn = save_json(payload, OFFERS_DIR, "offer")
+    return {"status": "offer stored", "file": fn}
 
 @app.get("/offers")
 def get_offers():
-    return load(OFFERS_PATH)
+    return load_folder(OFFERS_DIR)
 
+# ─── /matches ─────────────────────────────────────────────────────────────────
 @app.get("/matches")
 def get_matches():
-    needs = load(NEEDS_PATH)
-    offers = load(OFFERS_PATH)
+    needs = load_folder(NEEDS_DIR)
+    offers = load_folder(OFFERS_DIR)
     matches = []
     for n in needs:
-        for o in offers:
-            if n["item"].lower() == o["item"].lower() and o["quantity"] >= n["quantity"]:
-                matches.append({
-                    "need": n,
-                    "offer": o,
-                    "matched_at": datetime.datetime.utcnow().isoformat()
-                })
+        # adjust these keys to match your JSON schema exactly
+        for need_item in n.get("needs", []):
+            for o in offers:
+                for offer_item in o.get("offers", []):
+                    if (
+                        need_item.get("item", "").lower()
+                        == offer_item.get("item", "").lower()
+                        and offer_item.get("quantity", 0)
+                        >= need_item.get("quantity", 0)
+                    ):
+                        matches.append({
+                            "need_node": n.get("node_id"),
+                            "offer_node": o.get("node_id"),
+                            "item": need_item.get("item"),
+                            "quantity_needed": need_item.get("quantity"),
+                            "quantity_offered": offer_item.get("quantity"),
+                            "matched_at": datetime.datetime.utcnow().isoformat()
+                        })
     return matches
 
+# ─── /log ─────────────────────────────────────────────────────────────────────
 @app.post("/log")
-def create_log(log: LogEntry):
-    lst = load(LOG_PATH)
-    entry = log.dict()
-    lst.append(entry)
-    save(LOG_PATH, lst)
-    return {"status": "log entry created", "log_id": entry["log_id"]}
+async def post_log(req: Request):
+    payload = await req.json()
+    payload["_logged_at"] = datetime.datetime.utcnow().isoformat()
+    fn = save_json(payload, LOGS_DIR, "log")
+    return {"status": "log stored", "file": fn}
 
 @app.get("/log")
 def get_log():
-    return load(LOG_PATH)
+    return load_folder(LOGS_DIR)
+
+
+
+#forece reset
