@@ -1,0 +1,4 @@
+- Arka is an open-source humanitarian coordination protocol.
+- It is provided **as-is**, without warranties.
+- The creators are not liable for misuse or unauthorized deployment.
+- By using this system, you agree to uphold its core values: transparency, nonviolence, and dignity
