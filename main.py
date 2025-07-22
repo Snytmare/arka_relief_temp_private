@@ -247,11 +247,11 @@ async def post_trust_log(trust_entry: TrustLog, request: Request):
     return {"status": "trust log stored", "file": fn}
 
 
-@app.get("/trustlog/{node_id}")
 @limiter.limit("5/minute")
-async def get_trust_log(node_id: str):
+@app.get("/trustlog")
+async def get_trust_log(request: Request):
     logs = load_folder(TRUST_DIR)
-    return [log for log in logs if log.get("node_id") == node_id]
+    return [log for log in logs if log.get("node_id") == node_id
 
 
 
