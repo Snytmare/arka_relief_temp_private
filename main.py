@@ -94,6 +94,7 @@ def load_folder(folder: str) -> List[Dict[str, Any]]:
 
 @app.post("/match", response_model=List[MatchResponse])
 async def match_needs(match_request: MatchRequest):
+    offers_db = load_folder(OFFERS_DIR)
     results = []
 
     for offer in offers_db:
@@ -101,45 +102,35 @@ async def match_needs(match_request: MatchRequest):
         matched_items = []
 
         for need in match_request.needs:
-            for offered in offer.offers:
-                if need.item.lower() == offered.item.lower():
-                    item_score = 0.4  # Base match weight
-                    quantity_ratio = min(need.quantity / offered.quantity, 1.0)
+            for offered in offer.get("offers", []):
+                if need.item.lower() == offered.get("item", "").lower():
+                    quantity_offered = offered.get("quantity", 0)
+                    quantity_ratio = min(need.quantity / quantity_offered, 1.0) if quantity_offered else 0.0
+
+                    # Core matching logic (simplified, adjustable)
+                    item_score = 0.4
                     quantity_score = 0.3 * quantity_ratio
+                    total_score = item_score + quantity_score
 
-                    # Cold chain compatibility (if required)
-                    cold_chain_needed = "cold_chain" in need.alt_items or "cold_chain" in need.notes.lower()
-                    cold_chain_ok = offered.dimensions.get("cold_chain", False)
-                    cold_chain_score = 0.1 if cold_chain_needed and cold_chain_ok else 0.0
-
-                    # Trust overlap
-                    trust_common = len(set(offer.trust.vouched_by) & set(match_request.trust_nodes)) > 0
-                    trust_score = 0.1 if trust_common else 0.0
-
-                    # Region match (basic)
-                    same_region = offer.location.region.split(",")[0].strip().lower() == "gaza"
-                    region_score = 0.1 if same_region else 0.0
-
-                    # Total score
-                    total = item_score + quantity_score + cold_chain_score + trust_score + region_score
-                    match_score += total
+                    match_score += total_score
 
                     matched_items.append({
                         "item": need.item,
                         "quantity_needed": need.quantity,
-                        "quantity_offered": offered.quantity,
-                        "coverage": quantity_ratio
+                        "quantity_offered": quantity_offered,
+                        "coverage": round(quantity_ratio, 2)
                     })
 
         if matched_items:
             results.append({
-                "offer_node": offer.node_id,
+                "offer_node": offer.get("node_id", "unknown"),
                 "score": round(match_score, 3),
                 "matched_items": matched_items
             })
 
     results.sort(key=lambda x: x["score"], reverse=True)
     return results
+
 
 
 
