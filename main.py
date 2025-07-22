@@ -37,6 +37,14 @@ class MatchResponse(BaseModel):
     offer_node: str
     score: float
     matched_items: List[MatchedItem]
+    
+class TrustEvent(BaseModel):
+    node_id: str
+    event: str  # e.g., "offer_fulfilled", "consent_revoked", "relief_action"
+    delta: float  # change to trust score
+    reason: str
+    timestamp: str
+
 
     
 # ─── Init App ──────────────────────────────────────────────────────
@@ -71,6 +79,8 @@ BASE_DIR = "data"
 NEEDS_DIR = os.path.join(BASE_DIR, "needs")
 OFFERS_DIR = os.path.join(BASE_DIR, "offers")
 LOGS_DIR = os.path.join(BASE_DIR, "logs")
+TRUST_DIR = os.path.join(BASE_DIR, "trust")
+os.makedirs(TRUST_DIR, exist_ok=True)
 for d in (NEEDS_DIR, OFFERS_DIR, LOGS_DIR):
     os.makedirs(d, exist_ok=True)
 
@@ -88,6 +98,23 @@ def load_folder(folder: str) -> List[Dict[str, Any]]:
             with open(os.path.join(folder, fn), "r", encoding="utf-8") as f:
                 out.append(json.load(f))
     return out
+    
+    
+def log_trust_event(event: TrustEvent):
+    filename = f"trust_{uuid.uuid4().hex}.json"
+    path = os.path.join(TRUST_DIR, filename)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(event.dict(), f, indent=2)
+
+def get_trust_score(node_id: str) -> float:
+    score = 0.0
+    for fn in os.listdir(TRUST_DIR):
+        if fn.endswith(".json"):
+            with open(os.path.join(TRUST_DIR, fn), "r") as f:
+                entry = json.load(f)
+                if entry["node_id"] == node_id:
+                    score += entry.get("delta", 0.0)
+    return round(score, 3)
 
 # ─── API Endpoints ─────────────────────────────────────────────────
 
@@ -136,6 +163,13 @@ async def match_needs(match_request: MatchRequest):
 
 
 
+@app.get("/trust/{node_id}")
+def get_trust(node_id: str):
+    score = get_trust_score(node_id)
+    return {"node_id": node_id, "trust_score": score}
+
+
+
 @app.post("/needs")
 @limiter.limit("5/minute")
 async def post_needs(request: Request):
@@ -146,6 +180,42 @@ async def post_needs(request: Request):
     payload["_received_at"] = datetime.datetime.utcnow().isoformat()
     fn = save_json(payload, NEEDS_DIR, "need")
     return {"status": "need stored", "file": fn}
+
+@app.post("/trust/relieve")
+async def relieve_trust(request: Request):
+    data = await request.json()
+    node_id = data.get("node_id")
+    reason = data.get("reason", "Relief action taken")
+
+    event = TrustEvent(
+        node_id=node_id,
+        event="relief_action",
+        delta=+0.5,
+        reason=reason,
+        timestamp=datetime.datetime.utcnow().isoformat()
+    )
+    log_trust_event(event)
+    return {"status": "relieved", "trust_delta": 0.5}
+
+
+
+@app.post("/trust/revoke")
+async def revoke_trust(request: Request):
+    data = await request.json()
+    node_id = data.get("node_id")
+    reason = data.get("reason", "Consent revoked")
+
+    event = TrustEvent(
+        node_id=node_id,
+        event="consent_revoked",
+        delta=-1.0,  # You can later scale this based on cause/timing
+        reason=reason,
+        timestamp=datetime.datetime.utcnow().isoformat()
+    )
+    log_trust_event(event)
+    return {"status": "revoked", "trust_delta": -1.0}
+
+
 
 @app.get("/needs")
 @limiter.limit("5/minute")
