@@ -82,37 +82,55 @@ def load_folder(folder: str) -> List[Dict[str, Any]]:
 # ─── API Endpoints ─────────────────────────────────────────────────
 
 
-@app.post("/match")
-async def match_nodes(match_request: MatchRequest, request: Request):
-    needs = match_request.needs
-    offers = load_folder(OFFERS_DIR)
-    matches = []
+@app.post("/match", response_model=List[MatchResponse])
+async def match_needs(match_request: MatchRequest):
+    results = []
 
-    for offer_node in offers:
+    for offer in offers_db:
+        match_score = 0.0
         matched_items = []
 
-        for offer_item in offer_node.get("offers", []):
-            for need_item in needs:
-                if need_item.item.lower() == offer_item.get("item", "").lower():
+        for need in match_request.needs:
+            for offered in offer.offers:
+                if need.item.lower() == offered.item.lower():
+                    item_score = 0.4  # Base match weight
+                    quantity_ratio = min(need.quantity / offered.quantity, 1.0)
+                    quantity_score = 0.3 * quantity_ratio
+
+                    # Cold chain compatibility (if required)
+                    cold_chain_needed = "cold_chain" in need.alt_items or "cold_chain" in need.notes.lower()
+                    cold_chain_ok = offered.dimensions.get("cold_chain", False)
+                    cold_chain_score = 0.1 if cold_chain_needed and cold_chain_ok else 0.0
+
+                    # Trust overlap
+                    trust_common = len(set(offer.trust.vouched_by) & set(match_request.trust_nodes)) > 0
+                    trust_score = 0.1 if trust_common else 0.0
+
+                    # Region match (basic)
+                    same_region = offer.location.region.split(",")[0].strip().lower() == "gaza"
+                    region_score = 0.1 if same_region else 0.0
+
+                    # Total score
+                    total = item_score + quantity_score + cold_chain_score + trust_score + region_score
+                    match_score += total
+
                     matched_items.append({
-                        "item": offer_item["item"],
-                        "quantity_offered": offer_item["quantity"],
-                        "quantity_needed": need_item.quantity,
-                        "coverage": round(min(1.0, offer_item["quantity"] / need_item.quantity), 2)
+                        "item": need.item,
+                        "quantity_needed": need.quantity,
+                        "quantity_offered": offered.quantity,
+                        "coverage": quantity_ratio
                     })
 
         if matched_items:
-            score = 0.6 * offer_node.get("vitality", 1.0) + 0.4 * (1 - offer_node.get("urgency", 0.5))
-            matches.append({
-                "offer_node": offer_node.get("node_id"),
-                "score": round(score, 3),
-                "matched_items": matched_items,
-                "vitality": offer_node.get("vitality", 1.0),
-                "urgency": offer_node.get("urgency", 0.5)
+            results.append({
+                "offer_node": offer.node_id,
+                "score": round(match_score, 3),
+                "matched_items": matched_items
             })
 
-    matches.sort(key=lambda m: m["score"], reverse=True)
-    return matches
+    results.sort(key=lambda x: x["score"], reverse=True)
+    return results
+
 
 
 
