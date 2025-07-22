@@ -45,13 +45,15 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 origins = [
     "https://brilliant-gingersnap-a8e6d2.netlify.app",
 ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=origins,        
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # ─── Directory Setup ───────────────────────────────────────────────
 BASE_DIR = "data"
@@ -81,18 +83,22 @@ def load_folder(folder: str) -> List[Dict[str, Any]]:
 
 @app.post("/match")
 async def match_nodes(match_request: MatchRequest, request: Request):
-    need = match_request.need
+    need = match_request.need.lower()
     matches = []
 
-    for node in db:
-        if need in node.get("offers", []):
-            score = 0.6 * node.get("vitality", 1.0) + 0.4 * (1 - node.get("urgency", 0.5))
-            node_with_score = node.copy()
-            node_with_score["score"] = round(score, 3)
-            matches.append(node_with_score)
+    offers = load_folder(OFFERS_DIR)
+
+    for node in offers:
+        for offer in node.get("offers", []):
+            if need == offer.get("item", "").lower():
+                score = 0.6 * node.get("vitality", 1.0) + 0.4 * (1 - node.get("urgency", 0.5))
+                node_with_score = node.copy()
+                node_with_score["score"] = round(score, 3)
+                matches.append(node_with_score)
 
     matches.sort(key=lambda n: n["score"], reverse=True)
     return matches
+
 
 
 @app.post("/needs")
