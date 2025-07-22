@@ -45,6 +45,13 @@ class TrustEvent(BaseModel):
     reason: str
     timestamp: str
 
+class TrustLogEntry(BaseModel):
+    node_id: str
+    type: str  # "anchor", "gain", "revoke", "repair"
+    value: float
+    timestamp: str = None  # Optional — will default to now
+    reason: str = None
+
 
     
 # ─── Init App ──────────────────────────────────────────────────────
@@ -81,6 +88,16 @@ OFFERS_DIR = os.path.join(BASE_DIR, "offers")
 LOGS_DIR = os.path.join(BASE_DIR, "logs")
 TRUST_DIR = os.path.join(BASE_DIR, "trust")
 os.makedirs(TRUST_DIR, exist_ok=True)
+
+BASE_DIR = "data"
+NEEDS_DIR = os.path.join(BASE_DIR, "needs")
+OFFERS_DIR = os.path.join(BASE_DIR, "offers")
+LOGS_DIR = os.path.join(BASE_DIR, "logs")
+TRUST_DIR = os.path.join(BASE_DIR, "trust")  # ← Add this
+for d in (NEEDS_DIR, OFFERS_DIR, LOGS_DIR, TRUST_DIR):
+    os.makedirs(d, exist_ok=True)
+
+
 for d in (NEEDS_DIR, OFFERS_DIR, LOGS_DIR):
     os.makedirs(d, exist_ok=True)
 
@@ -214,6 +231,22 @@ async def revoke_trust(request: Request):
     )
     log_trust_event(event)
     return {"status": "revoked", "trust_delta": -1.0}
+
+@app.post("/trustlog")
+@limiter.limit("5/minute")
+async def post_trust_log(entry: TrustLogEntry):
+    log = entry.dict()
+    if not log.get("timestamp"):
+        log["timestamp"] = datetime.datetime.utcnow().isoformat()
+    fn = save_json(log, TRUST_DIR, "trust")
+    return {"status": "trust log stored", "file": fn}
+
+
+@app.get("/trustlog/{node_id}")
+@limiter.limit("5/minute")
+async def get_trust_log(node_id: str):
+    logs = load_folder(TRUST_DIR)
+    return [log for log in logs if log.get("node_id") == node_id]
 
 
 
