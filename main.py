@@ -164,9 +164,12 @@ async def post_trust_log(trust_entry: TrustLog, request: Request):
 
 @app.get("/trustlog")
 @limiter.limit("5/minute")
-async def get_trust_log(request: Request):
+async def get_trust_log(request: Request, node_id: str = ""):
     logs = load_folder(TRUST_DIR)
+    if node_id:
+        logs = [log for log in logs if log.get("node_id") == node_id]
     return logs
+
 
 @app.post("/trust/relieve")
 async def relieve_trust(request: Request):
