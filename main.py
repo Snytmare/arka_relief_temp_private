@@ -176,6 +176,20 @@ async def get_trust_log(request: Request, node_id: str = ""):
         logs = [log for log in logs if log.get("node_id") == node_id]
     return logs
 
+@app.get("/trustlog/all")
+def get_all_trust_logs():
+    logs = []
+    for filename in os.listdir(DATA_DIR):
+        if filename.endswith(".json"):
+            with open(os.path.join(DATA_DIR, filename), "r") as f:
+                try:
+                    logs.extend(json.load(f))
+                except json.JSONDecodeError:
+                    continue
+    # Sort by timestamp
+    logs.sort(key=lambda x: x.get("timestamp", ""))
+    return JSONResponse(content=logs)
+
 
 @app.post("/trust/relieve")
 async def relieve_trust(request: Request):
