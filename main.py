@@ -193,6 +193,15 @@ async def post_log(request: Request):
 async def get_log(request: Request):
     return load_folder(LOGS_DIR)
 
+# Load offers from file if available
+def load_offers():
+    try:
+        with open("offers.json", "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return []
+
+
 @app.get("/match")
 @limiter.limit("5/minute")
 def get_matches(request: Request):
