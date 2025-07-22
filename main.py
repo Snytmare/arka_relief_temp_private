@@ -52,6 +52,11 @@ class TrustLogEntry(BaseModel):
     timestamp: str = None  # Optional — will default to now
     reason: str = None
 
+class TrustLog(BaseModel):
+    user_id: str
+    trust_value: float
+    timestamp: str
+    note: str | None = None
 
     
 # ─── Init App ──────────────────────────────────────────────────────
