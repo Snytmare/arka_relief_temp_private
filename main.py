@@ -154,13 +154,16 @@ async def match_needs(match_request: MatchRequest):
     results.sort(key=lambda x: x["score"], reverse=True)
     return results
 
-@app.get("/trust/{node_id}")
+@app.get("/trustlog/{node_id}")
 def get_trust_logs(node_id: str):
-    filename = f"trustlog_{node_id}.json"
-    filepath = os.path.join(BASE_DIR, filename)
-
-    if not os.path.exists(filepath):
+    log_file = os.path.join(TRUST_DIR, f"{node_id}.jsonl")
+    if not os.path.exists(log_file):
         raise HTTPException(status_code=404, detail="Trust log not found.")
+
+    with open(log_file, "r", encoding="utf-8") as f:
+        lines = [json.loads(line.strip()) for line in f if line.strip()]
+    return lines
+
 
 
 @app.post("/trustlog")
@@ -180,19 +183,17 @@ async def get_trust_log(request: Request, node_id: str = ""):
         logs = [log for log in logs if log.get("node_id") == node_id]
     return logs
 
-@app.get("/trustlog/all")
-def get_all_trust_logs():
-    logs = []
-    for filename in os.listdir(BASE_DIR):
-        if filename.endswith(".json"):
-            with open(os.path.join(BASE_DIR, filename), "r") as f:
-                try:
-                    logs.extend(json.load(f))
-                except json.JSONDecodeError:
-                    continue
-    # Sort by timestamp
-    logs.sort(key=lambda x: x.get("timestamp", ""))
-    return JSONResponse(content=logs)
+@app.post("/trustlog")
+def write_trust_log(log: TrustLog):
+    log_file = os.path.join(TRUST_DIR, f"{log.node_id}.jsonl")
+    entry = log.dict()
+    entry["timestamp"] = entry["timestamp"] or datetime.utcnow().isoformat()
+
+    with open(log_file, "a", encoding="utf-8") as f:
+        f.write(json.dumps(entry) + "\n")
+
+    return {"message": "Trust log recorded."}
+
 
 
 @app.post("/trust/relieve")
