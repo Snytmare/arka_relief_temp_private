@@ -155,9 +155,13 @@ async def match_needs(match_request: MatchRequest):
     return results
 
 @app.get("/trust/{node_id}")
-def get_trust(node_id: str):
-    score = get_trust_score(node_id)
-    return {"node_id": node_id, "trust_score": score}
+def get_trust_logs(node_id: str):
+    filename = f"trustlog_{node_id}.json"
+    filepath = os.path.join(BASE_DIR, filename)
+
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Trust log not found.")
+
 
 @app.post("/trustlog")
 @limiter.limit("5/minute")
