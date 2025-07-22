@@ -27,7 +27,17 @@ class NeedPayload(BaseModel):
 class MatchRequest(BaseModel):
     needs: List[NeedItem]
 
-    
+class MatchedItem(BaseModel):
+    item: str
+    quantity_needed: int
+    quantity_offered: int
+    coverage: float
+
+class MatchResponse(BaseModel):
+    offer_node: str
+    score: float
+    matched_items: List[MatchedItem]
+
     
 # ─── Init App ──────────────────────────────────────────────────────
 app = FastAPI()
