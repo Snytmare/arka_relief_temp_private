@@ -45,10 +45,12 @@ class TrustEvent(BaseModel):
     timestamp: str
 
 class TrustLog(BaseModel):
-    user_id: str
-    trust_value: float
-    timestamp: str
-    note: Optional[str] = None
+    node_id: str
+    type: Literal["relieve", "warn", "commend"]  # example constraint
+    value: float
+    reason: Optional[str] = None
+    timestamp: datetime  # <-- this might be required!
+
 
 # ─── Init App ──────────────────────────────────────────────────────
 app = FastAPI()
