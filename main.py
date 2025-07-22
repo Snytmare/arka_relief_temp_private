@@ -10,6 +10,9 @@ from dotenv import load_dotenv
 
 import os, json, uuid, datetime
 
+
+import os, json, uuid, datetime
+
 # ─── Load ENV ──────────────────────────────────────────────────────
 load_dotenv()
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")
@@ -49,7 +52,8 @@ class TrustLog(BaseModel):
     type: Literal["relieve", "warn", "commend"]  # example constraint
     value: float
     reason: Optional[str] = None
-    timestamp: datetime  # <-- this might be required!
+    timestamp: Optional[str] = None  # Expecting ISO 8601 string (not datetime obj)
+
 
 
 # ─── Init App ──────────────────────────────────────────────────────
