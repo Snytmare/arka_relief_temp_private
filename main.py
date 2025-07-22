@@ -25,7 +25,8 @@ class NeedPayload(BaseModel):
     needs: List[NeedItem]
 
 class MatchRequest(BaseModel):
-    need: str
+    needs: List[NeedItem]
+
     
     
 # ─── Init App ──────────────────────────────────────────────────────
@@ -83,21 +84,36 @@ def load_folder(folder: str) -> List[Dict[str, Any]]:
 
 @app.post("/match")
 async def match_nodes(match_request: MatchRequest, request: Request):
-    need = match_request.need.lower()
+    needs = match_request.needs
+    offers = load_folder(OFFERS_DIR)
     matches = []
 
-    offers = load_folder(OFFERS_DIR)
+    for offer_node in offers:
+        matched_items = []
 
-    for node in offers:
-        for offer in node.get("offers", []):
-            if need == offer.get("item", "").lower():
-                score = 0.6 * node.get("vitality", 1.0) + 0.4 * (1 - node.get("urgency", 0.5))
-                node_with_score = node.copy()
-                node_with_score["score"] = round(score, 3)
-                matches.append(node_with_score)
+        for offer_item in offer_node.get("offers", []):
+            for need_item in needs:
+                if need_item.item.lower() == offer_item.get("item", "").lower():
+                    matched_items.append({
+                        "item": offer_item["item"],
+                        "quantity_offered": offer_item["quantity"],
+                        "quantity_needed": need_item.quantity,
+                        "coverage": round(min(1.0, offer_item["quantity"] / need_item.quantity), 2)
+                    })
 
-    matches.sort(key=lambda n: n["score"], reverse=True)
+        if matched_items:
+            score = 0.6 * offer_node.get("vitality", 1.0) + 0.4 * (1 - offer_node.get("urgency", 0.5))
+            matches.append({
+                "offer_node": offer_node.get("node_id"),
+                "score": round(score, 3),
+                "matched_items": matched_items,
+                "vitality": offer_node.get("vitality", 1.0),
+                "urgency": offer_node.get("urgency", 0.5)
+            })
+
+    matches.sort(key=lambda m: m["score"], reverse=True)
     return matches
+
 
 
 
