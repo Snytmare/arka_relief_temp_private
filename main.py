@@ -179,9 +179,9 @@ async def get_trust_log(request: Request, node_id: str = ""):
 @app.get("/trustlog/all")
 def get_all_trust_logs():
     logs = []
-    for filename in os.listdir(DATA_DIR):
+    for filename in os.listdir(BASE_DIR):
         if filename.endswith(".json"):
-            with open(os.path.join(DATA_DIR, filename), "r") as f:
+            with open(os.path.join(BASE_DIR, filename), "r") as f:
                 try:
                     logs.extend(json.load(f))
                 except json.JSONDecodeError:
