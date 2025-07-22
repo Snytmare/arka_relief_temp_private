@@ -75,7 +75,7 @@ app.add_middleware(
 )
 
 # ─── Directory Setup ───────────────────────────────────────────────
-BASE_DIR = "data"
+BASE_DIR = "app/data"
 NEEDS_DIR = os.path.join(BASE_DIR, "needs")
 OFFERS_DIR = os.path.join(BASE_DIR, "offers")
 LOGS_DIR = os.path.join(BASE_DIR, "logs")
