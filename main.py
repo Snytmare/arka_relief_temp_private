@@ -232,7 +232,7 @@ async def revoke_trust(request: Request):
     log_trust_event(event)
     return {"status": "revoked", "trust_delta": -1.0}
 
-@@app.post("/trustlog")
+@app.post("/trustlog")
 @limiter.limit("5/minute")
 async def post_trust_log(trust_entry: TrustLog, request: Request):
     log = entry.dict()
